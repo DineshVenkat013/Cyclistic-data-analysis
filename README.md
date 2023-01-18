@@ -21,4 +21,4 @@ Moreno has assigned you the first question to answer: How do annual members and 
 
 This case study objective is to find the differences in the usage of bikes by annual members and casual riders of the Cyclistic company.
 
-Note: The tables added in the GitHub are raw data ( not refined data).
+Note: The Monthly raw data of few months are split into two as there is a limit of 100 MB upload.
