@@ -1,0 +1,206 @@
+Link to BiqQuery code: https://console.cloud.google.com/bigquery?sq=1004951883828:e9871981984a4791b20df7653bce4b06
+
+-- DESCRIPTION ABOUT THE DATASETS:
+
+-- my-project1-365912 is the Project name and it contains the following Datasets:
+ 
+ -- Case_study_1
+ -- Case_study_1_cleaned_sheets
+ -- Case_study_1_final_data_analysis
+
+-- Case_study_1 contains the raw monthly data of Cyclistic company from Dec 2021 to Nov 2022:
+
+  -- 202112-divy-tripdata
+  -- 202201-divy-tripdata
+  -- 202202-divy-tripdata
+  -- 202203-divy-tripdata
+  -- 202204-divy-tripdata
+  -- 202205-divy-tripdata
+  -- 202206-divy-tripdata
+  -- 202207-divy-tripdata
+  -- 202208-divy-tripdata
+  -- 202209-divy-tripdata
+  -- 202210-divy-tripdata
+  -- 202211-divy-tripdata 
+
+-- Case_study_1_cleaned_sheets contains the refined data of Case_study_1 dataset which needs to be combined, create new columns for analysis and dealing with missing data:
+
+  -- 202112-divy-tripdata
+  -- 202201-divy-tripdata
+  -- 202202-divy-tripdata
+  -- 202203-divy-tripdata
+  -- 202204-divy-tripdata
+  -- 202205-divy-tripdata
+  -- 202206-divy-tripdata
+  -- 202207-divy-tripdata
+  -- 202208-divy-tripdata
+  -- 202209-divy-tripdata
+  -- 202210-divy-tripdata
+  -- 202211-divy-tripdata 
+
+-- Case_study_1_final_data_analysis contains 2 tables:
+  
+  -- final_data_for_analysis_1    This table is the combined data of all the tables in Case_study_1_cleaned_sheets and few columns are created for analysis 
+  -- final_data_for_analysis_2    This table is refined from final_data_for_analysis_1 table after dealing with missing data. 
+
+
+-- DATA CLEANING:
+
+
+-- CONSISTENCY OF NO. OF COLUMNS ACROSS TABLES
+
+SELECT table_name, COUNT(table_name) AS no_of_columns
+FROM
+(SELECT table_name, column_name, data_type
+FROM my-project1-365912.Case_study_1.INFORMATION_SCHEMA.COLUMNS)
+GROUP BY table_name;
+
+-- The query result that all 12 tables contain 13 columns.
+
+
+-- CONSISTENCY OF DATA FORMAT AND CONSISTENCY OF COLUMN NAMES ACROSS THE TABLES
+
+SELECT DISTINCT(column_name), data_type
+FROM(
+SELECT table_name, column_name, data_type
+FROM my-project1-365912.Case_study_1.INFORMATION_SCHEMA.COLUMNS);
+
+-- The query resulted in 13 rows that means all the tables have same corresponding column names and data type.
+
+
+-- REMOVING DUPLICATE AND INVALID DATA
+
+SELECT DISTINCT * -- REMOVING DUPLICATE DATA
+FROM `my-project1-365912.Case_study_1.202211-divvy-tripdata`
+WHERE 
+  started_at <= ended_at; --REMOVING INVALID DATA
+
+-- THE OUTPUT IS SAVED IN 'Case_study_1_cleaned_sheets' DATASET.
+
+
+-- COMBINING DATA 
+
+WITH cleaned_data AS (
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202112-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202201-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202202-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202203-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202204-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202205-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202206-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202207-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202208-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202209-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202210-divvy-tripdata`)
+UNION ALL
+(SELECT * FROM `my-project1-365912.Case_study_1_cleaned_sheets.202211-divvy-tripdata`))
+
+-- CREATING COLUMNS FOR ANALYSIS
+
+SELECT 
+FORMAT_TIMESTAMP('%b %Y', started_at) AS month_year_of_data_collection,
+*,
+ROUND(CAST(TIMESTAMP_DIFF(ended_at,started_at,SECOND) AS INT64)/60, 3) AS ride_length_minutes, 
+FORMAT_TIMESTAMP('%A',started_at) AS day_of_week,
+CAST(FORMAT_TIMESTAMP('%H',started_at) AS INT64) AS hour_of_day
+FROM cleaned_data;
+
+-- THE DATA CREATED IS SAVED AS "final_data_for_analysis_1" IN "Case_study_1_final_data_analysis" DATASET 
+
+
+-- DEALING WITH MISSING DATA:
+
+-- When we thoroughly examine the tables separately we can find that the missing data in all the tables are following a similar pattern.
+
+-- And therefore we are dealing with the missing data after combining all data.
+
+-- TO FIND OUT WHICH COLUMN CONTAINS MISSING VALUES:
+
+SELECT 
+  COUNT(*) AS total , 
+  COUNT(month_year_of_data_collection) AS col_month_year_of_data_collection,
+  COUNT(ride_id) AS col_ride_id,
+  COUNT(rideable_type) AS col_rideable_type,
+  COUNT(started_at) AS col_started_at,
+  COUNT(ended_at) AS col_ended_at,
+  COUNT(start_station_name) AS col_start_s_name,
+  COUNT(start_station_id) AS col_start_s_id,
+  COUNT(start_lat) AS col_start_lat,
+  COUNT(start_lng) AS col_start_lng,
+  COUNT(end_station_name) AS col_end_s_name,
+  COUNT(end_station_id) AS col_end_s_id,
+  COUNT(end_lat) AS col_end_lat,
+  COUNT(end_lng) AS col_end_lng,
+  COUNT(member_casual) AS col_member_casual,
+  COUNT(ride_length_minutes) AS col_ride_length_minutes,
+  COUNT(day_of_week) AS col_day_of_week,
+  COUNT(hour_of_day) AS col_hour_of_day
+FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1` ;
+
+-- When we are checking the columns containing missing values, we found that the following columns contain NULL values:
+
+-- 1. start_station_name
+-- 2. start_station_id
+-- 3. end_station_name
+-- 4. end_station_id
+-- 5. end_lat
+-- 6. end_lng
+ 
+-- Code to check for patterns for the missing data in the mentioned above columns:
+SELECT * FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1` WHERE end_lat IS NOT NULL AND end_station_id IS NOT NULL;
+-- change the column names in the WHERE statement to find patterns of missing data.
+
+-- Following are the findings:
+
+-- 1. When start_station_name is NULL, then start_station_id is NULL and viceversa
+-- 2. When end_station_name is NULL, then end_station_id is NULL and vice versa
+-- 3. When end_lat is NULL, then end_lng is NULL and vice versa
+-- 4. When end_station_id or end_station_name is NULL then (end_lat and end_lng are rounded to 2 decimals)[4.1 case] or (end_lat and end_lng are NULL)[4.2 case]
+-- The missing data in start_station_id, start_station_name is also cased by the same reason as 4.1 case
+
+-- 4.1 case can be casued due to an error in exporting the data from the source.  It can be rectified and need to be informed to the higher authorities.
+-- 4.2 case is caused when there is error in detecting the trip end location at the source(technical error). This case cannot be rectified and its a clear cut case of missing data which needs to be eliminated before analysis and also let the higher authorities know about this issue.
+
+-- CALCULATING THE PERCENTAGES OF MISSING DATA:
+
+SELECT 
+total_percentage_of_missing_data,
+Percent_of_missing_data_due_to_rounding, -- 4.1 case
+Percent_of_missing_data_due_to_technical_errror -- 4.2 case
+FROM
+(SELECT COUNT(*) AS total_count_of_rows
+FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1`
+-- Result: 5733351 is the total count of rows in the complete data
+)T1,
+(SELECT COUNT(*) * 100/5733351 AS total_percentage_of_missing_data 
+FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1` 
+WHERE 
+  start_station_id IS NULL or start_lat IS NULL or end_station_name IS NULL or end_lat IS NULL
+)T2,
+(SELECT COUNT(*)*100/5733351 AS Percent_of_missing_data_due_to_rounding
+FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1`
+WHERE (end_station_id IS NULL AND end_lat IS NOT NULL) OR (start_station_name IS NULL AND start_lat IS NOT NULL))T3,
+(SELECT COUNT(*)*100/5733351 AS Percent_of_missing_data_due_to_technical_errror
+FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1`
+WHERE end_station_name IS NULL AND end_lat IS NULL)T4;
+
+-- 4.1 case can be rectified and holds 22.97 % of the total data which  we cannot delete as it is a huge portion of data and so we have to exculde the columns which 4.2 case of missing data is included i.e., the start_station_name, start_station_id, start_lat, start_lng, end_station_name, end_station_id, end_lat, end_lng columns excluded from the analysis.
+-- 4.2 case cannot be rectified and holds 0.1 % of the data and therefore these rows can be eliminated
+
+-- Final data after eliminating the 4.2 case of missing data:
+
+SELECT * FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1` WHERE end_lat IS NOT NULL AND end_station_id IS NOT NULL
+UNION ALL
+SELECT * FROM `my-project1-365912.Case_study_1_final_data_analysis.final_data_for_analysis_1` WHERE end_lat IS NOT NULL AND end_station_id IS NULL
+
+-- The output table of this query is saved as "final_data_for_analysis_2" in "Case_study_1_final_data_analysis" datset.
